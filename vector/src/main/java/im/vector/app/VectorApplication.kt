@@ -81,8 +81,8 @@ class VectorApplication :
     @Inject lateinit var legacySessionImporter: LegacySessionImporter
     @Inject lateinit var authenticationService: AuthenticationService
     @Inject lateinit var vectorConfiguration: VectorConfiguration
-    @Inject lateinit var emojiCompatFontProvider: EmojiCompatFontProvider
-    @Inject lateinit var emojiCompatWrapper: EmojiCompatWrapper
+    // @Inject lateinit var emojiCompatFontProvider: EmojiCompatFontProvider
+    // @Inject lateinit var emojiCompatWrapper: EmojiCompatWrapper
     @Inject lateinit var vectorUncaughtExceptionHandler: VectorUncaughtExceptionHandler
     @Inject lateinit var activeSessionHolder: ActiveSessionHolder
     @Inject lateinit var notificationDrawerManager: NotificationDrawerManager
@@ -139,18 +139,18 @@ class VectorApplication :
         EpoxyController.defaultDiffingHandler = EpoxyAsyncUtil.getAsyncBackgroundHandler()
         EpoxyController.defaultModelBuildingHandler = EpoxyAsyncUtil.getAsyncBackgroundHandler()
         registerActivityLifecycleCallbacks(VectorActivityLifecycleCallbacks(popupAlertManager))
-        val fontRequest = FontRequest(
-                "com.google.android.gms.fonts",
-                "com.google.android.gms",
-                "Noto Color Emoji Compat",
-                R.array.com_google_android_gms_fonts_certs
-        )
-        FontsContractCompat.requestFont(this, fontRequest, emojiCompatFontProvider, getFontThreadHandler())
+        // val fontRequest = FontRequest(
+        //         "com.google.android.gms.fonts",
+        //         "com.google.android.gms",
+        //         "Noto Color Emoji Compat",
+        //         R.array.com_google_android_gms_fonts_certs
+        // )
+        // FontsContractCompat.requestFont(this, fontRequest, emojiCompatFontProvider, getFontThreadHandler())
         VectorLocale.init(this)
         ThemeUtils.init(this)
         vectorConfiguration.applyToApplicationContext()
 
-        emojiCompatWrapper.init(fontRequest)
+        // emojiCompatWrapper.init(fontRequest)
 
         notificationUtils.createNotificationChannels()
 

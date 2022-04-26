@@ -18,7 +18,7 @@ def markwon = "4.6.2"
 def moshi = "1.13.0"
 def lifecycle = "2.4.0"
 def flowBinding = "1.2.0"
-def epoxy = "4.6.2"
+def epoxy = "4.6.1"
 def mavericks = "2.5.0"
 def glide = "4.12.0"
 def bigImageViewer = "1.8.1"
@@ -133,6 +133,9 @@ ext.libs = [
         vanniktech  : [
                 'emojiMaterial'          : "com.vanniktech:emoji-material:$vanniktechEmoji",
                 'emojiGoogle'            : "com.vanniktech:emoji-google:$vanniktechEmoji"
+        ],
+        c1710       : [
+                'filemojicompat'         : "de.c1710:filemojicompat-autoinit:3.2.1"
         ],
         apache      : [
                 'commonsImaging'         : "org.apache.sanselan:sanselan:0.97-incubator"

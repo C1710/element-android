@@ -486,6 +486,9 @@ dependencies {
     implementation libs.vanniktech.emojiMaterial
     implementation libs.vanniktech.emojiGoogle
 
+    // Emoji Picker
+    implementation libs.c1710.filemojicompat
+
     implementation 'im.dlg:android-dialer:1.2.5'
 
     // JWT

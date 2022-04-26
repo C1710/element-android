@@ -118,6 +118,7 @@ ext.groups = [
                         'commons-codec',
                         'commons-io',
                         'commons-logging',
+                        'de.c1710',
                         'info.picocli',
                         'io.arrow-kt',
                         'io.github.detekt.sarif4k',

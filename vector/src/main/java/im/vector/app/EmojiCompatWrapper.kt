@@ -30,7 +30,8 @@ fun interface EmojiSpanify {
 @Singleton
 class EmojiCompatWrapper @Inject constructor(private val context: Context) : EmojiSpanify {
 
-    private var initialized = false
+    // We initialize it elsewhere
+    private var initialized = true
 
     fun init(fontRequest: FontRequest) {
         // Use emoji compat for the benefit of emoji spans
@@ -54,16 +55,16 @@ class EmojiCompatWrapper @Inject constructor(private val context: Context) : Emo
     }
 
     override fun spanify(sequence: CharSequence): CharSequence {
-        if (initialized) {
+        return if (initialized) {
             try {
-                return EmojiCompat.get().process(sequence) ?: sequence
+                EmojiCompat.get().process(sequence) ?: sequence
             } catch (throwable: Throwable) {
                 // Defensive coding against error (should not happend as it is initialized)
                 Timber.e(throwable, "Failed to init EmojiCompat")
-                return sequence
+                sequence
             }
         } else {
-            return sequence
+            sequence
         }
     }
 }

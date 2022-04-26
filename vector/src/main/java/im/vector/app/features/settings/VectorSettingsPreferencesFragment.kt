@@ -24,6 +24,7 @@ import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import de.c1710.filemojicompat_ui.views.picker.preference.EmojiPickerPreference
 import im.vector.app.BuildConfig
 import im.vector.app.R
 import im.vector.app.core.dialogs.PhotoOrVideoDialog
@@ -62,6 +63,17 @@ class VectorSettingsPreferencesFragment @Inject constructor(
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         analyticsScreenName = MobileScreen.ScreenName.SettingsPreferences
+    }
+
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
+        super.onCreatePreferences(savedInstanceState, rootKey)
+        preferenceScreen.addPreference((requireActivity() as VectorSettingsActivity).emojiPickerPreference)
+    }
+
+    override fun onDisplayPreferenceDialog(preference: Preference) {
+        if (!EmojiPickerPreference.onDisplayPreferenceDialog(this, preference)) {
+            super.onDisplayPreferenceDialog(preference)
+        }
     }
 
     override fun bindPref() {

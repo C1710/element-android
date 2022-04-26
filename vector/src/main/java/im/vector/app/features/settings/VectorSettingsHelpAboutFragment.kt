@@ -72,7 +72,7 @@ class VectorSettingsHelpAboutFragment @Inject constructor(
             }
 
             it.setOnPreferenceClickListener { pref ->
-                copyToClipboard(requireContext(), pref.summary)
+                pref.summary?.let { it1 -> copyToClipboard(requireContext(), it1) }
                 true
             }
         }
@@ -82,7 +82,7 @@ class VectorSettingsHelpAboutFragment @Inject constructor(
             it.summary = Matrix.getSdkVersion()
 
             it.setOnPreferenceClickListener { pref ->
-                copyToClipboard(requireContext(), pref.summary)
+                pref.summary?.let { it1 -> copyToClipboard(requireContext(), it1) }
                 true
             }
         }

@@ -25,6 +25,7 @@ import androidx.fragment.app.FragmentManager
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import dagger.hilt.android.AndroidEntryPoint
+import de.c1710.filemojicompat_ui.views.picker.preference.EmojiPickerPreference
 import im.vector.app.R
 import im.vector.app.core.extensions.replaceFragment
 import im.vector.app.core.platform.VectorBaseActivity
@@ -49,12 +50,18 @@ class VectorSettingsActivity : VectorBaseActivity<ActivityVectorSettingsBinding>
         PreferenceFragmentCompat.OnPreferenceStartFragmentCallback,
         FragmentManager.OnBackStackChangedListener,
         VectorSettingsFragmentInteractionListener {
+    lateinit var emojiPickerPreference: EmojiPickerPreference
 
     override fun getBinding() = ActivityVectorSettingsBinding.inflate(layoutInflater)
 
     override fun getCoordinatorLayout() = views.coordinatorLayout
 
     override fun getTitleRes() = R.string.title_activity_settings
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        emojiPickerPreference = EmojiPickerPreference.get(this)
+    }
 
     private var keyToHighlight: String? = null
 
