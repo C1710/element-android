@@ -38,6 +38,7 @@ import org.matrix.android.sdk.api.session.Session
 import org.matrix.android.sdk.api.session.events.model.EventType
 import org.matrix.android.sdk.api.session.getRoom
 import org.matrix.android.sdk.api.session.room.Room
+import org.matrix.android.sdk.api.session.room.getStateEvent
 import org.matrix.android.sdk.api.session.room.model.Membership
 import org.matrix.android.sdk.api.session.room.model.RoomSummary
 import org.matrix.android.sdk.api.util.Optional
@@ -45,12 +46,13 @@ import org.matrix.android.sdk.flow.flow
 import org.matrix.android.sdk.flow.unwrap
 
 /**
- * This ViewModel observe a room summary and notify when the room is left
+ * This ViewModel observe a room summary and notify when the room is left.
  */
 class RequireActiveMembershipViewModel @AssistedInject constructor(
         @Assisted initialState: RequireActiveMembershipViewState,
         private val stringProvider: StringProvider,
-        private val session: Session) :
+        private val session: Session
+) :
         VectorViewModel<RequireActiveMembershipViewState, RequireActiveMembershipAction, RequireActiveMembershipViewEvents>(initialState) {
 
     @AssistedFactory
@@ -93,7 +95,7 @@ class RequireActiveMembershipViewModel @AssistedInject constructor(
         }
         val senderId = room.getStateEvent(EventType.STATE_ROOM_MEMBER, QueryStringValue.Equals(session.myUserId))?.senderId
         val senderDisplayName = senderId?.takeIf { it != session.myUserId }?.let {
-            room.getRoomMember(it)?.displayName ?: it
+            room.membershipService().getRoomMember(it)?.displayName ?: it
         }
         val viewEvent = when (roomSummary.membership) {
             Membership.LEAVE -> {
@@ -108,13 +110,13 @@ class RequireActiveMembershipViewModel @AssistedInject constructor(
                 }
                 RequireActiveMembershipViewEvents.RoomLeft(message)
             }
-            Membership.BAN   -> {
+            Membership.BAN -> {
                 val message = senderDisplayName?.let {
                     stringProvider.getString(R.string.has_been_banned, roomSummary.displayName, it)
                 }
                 RequireActiveMembershipViewEvents.RoomLeft(message)
             }
-            else             -> null
+            else -> null
         }
         return Optional.from(viewEvent)
     }

@@ -47,6 +47,7 @@ import org.matrix.android.sdk.api.session.identity.IdentityServiceListener
 import org.matrix.android.sdk.api.session.identity.ThreePid
 import org.matrix.android.sdk.api.session.user.model.User
 import org.matrix.android.sdk.api.util.toMatrixItem
+import kotlin.random.Random
 
 data class ThreePidUser(
         val email: String,
@@ -103,14 +104,14 @@ class UserListViewModel @AssistedInject constructor(
 
     override fun handle(action: UserListAction) {
         when (action) {
-            is UserListAction.SearchUsers                -> handleSearchUsers(action.value)
-            is UserListAction.ClearSearchUsers           -> handleClearSearchUsers()
-            is UserListAction.AddPendingSelection        -> handleSelectUser(action)
-            is UserListAction.RemovePendingSelection     -> handleRemoveSelectedUser(action)
+            is UserListAction.SearchUsers -> handleSearchUsers(action.value)
+            is UserListAction.ClearSearchUsers -> handleClearSearchUsers()
+            is UserListAction.AddPendingSelection -> handleSelectUser(action)
+            is UserListAction.RemovePendingSelection -> handleRemoveSelectedUser(action)
             UserListAction.ComputeMatrixToLinkForSharing -> handleShareMyMatrixToLink()
-            UserListAction.UserConsentRequest            -> handleUserConsentRequest()
-            is UserListAction.UpdateUserConsent          -> handleISUpdateConsent(action)
-            UserListAction.Resumed                       -> handleResumed()
+            UserListAction.UserConsentRequest -> handleUserConsentRequest()
+            is UserListAction.UpdateUserConsent -> handleISUpdateConsent(action)
+            UserListAction.Resumed -> handleResumed()
         }
     }
 
@@ -142,7 +143,7 @@ class UserListViewModel @AssistedInject constructor(
     }
 
     private fun retryUserSearch(state: UserListViewState) {
-        identityServerUsersSearch.tryEmit(UserSearch(state.searchTerm, cacheBuster = System.currentTimeMillis()))
+        identityServerUsersSearch.tryEmit(UserSearch(state.searchTerm, cacheBuster = Random.nextLong()))
     }
 
     private fun handleSearchUsers(searchTerm: String) {
@@ -270,6 +271,6 @@ class UserListViewModel @AssistedInject constructor(
 private fun UserListViewState.hasNoIdentityServerConfigured() = matchingEmail is Fail && matchingEmail.error == IdentityServiceError.NoIdentityServerConfigured
 
 /**
- * Wrapper class to allow identical search terms to be re-emitted
+ * Wrapper class to allow identical search terms to be re-emitted.
  */
 private data class UserSearch(val searchTerm: String, val cacheBuster: Long = 0)

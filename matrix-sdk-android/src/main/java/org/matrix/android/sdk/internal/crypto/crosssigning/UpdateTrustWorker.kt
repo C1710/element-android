@@ -149,7 +149,7 @@ internal class UpdateTrustWorker(context: Context, params: WorkerParameters, ses
             val trusts = otherInfos.mapValues { entry ->
                 when (entry.key) {
                     myUserId -> myTrustResult
-                    else     -> {
+                    else -> {
                         crossSigningService.checkOtherMSKTrusted(myCrossSigningInfo, entry.value).also {
                             Timber.v("## CrossSigning - user:${entry.key} result:$it")
                         }
@@ -207,6 +207,7 @@ internal class UpdateTrustWorker(context: Context, params: WorkerParameters, ses
     private suspend fun updateTrustStep2(userList: List<String>, myCrossSigningInfo: MXCrossSigningInfo?) {
         Timber.d("## CrossSigning - Updating shields for impacted rooms...")
         awaitTransaction(sessionRealmConfiguration) { sessionRealm ->
+            Timber.d("## CrossSigning - Updating shields for impacted rooms - in transaction")
             Realm.getInstance(cryptoRealmConfiguration).use { cryptoRealm ->
                 sessionRealm.where(RoomMemberSummaryEntity::class.java)
                         .`in`(RoomMemberSummaryEntityFields.USER_ID, userList.toTypedArray())
@@ -239,6 +240,7 @@ internal class UpdateTrustWorker(context: Context, params: WorkerParameters, ses
                         }
             }
         }
+        Timber.d("## CrossSigning - Updating shields for impacted rooms - END")
     }
 
     private fun getCrossSigningInfo(cryptoRealm: Realm, userId: String): MXCrossSigningInfo? {
@@ -276,10 +278,12 @@ internal class UpdateTrustWorker(context: Context, params: WorkerParameters, ses
                 }
     }
 
-    private fun computeRoomShield(myCrossSigningInfo: MXCrossSigningInfo?,
-                                  cryptoRealm: Realm,
-                                  activeMemberUserIds: List<String>,
-                                  roomSummaryEntity: RoomSummaryEntity): RoomEncryptionTrustLevel {
+    private fun computeRoomShield(
+            myCrossSigningInfo: MXCrossSigningInfo?,
+            cryptoRealm: Realm,
+            activeMemberUserIds: List<String>,
+            roomSummaryEntity: RoomSummaryEntity
+    ): RoomEncryptionTrustLevel {
         Timber.v("## CrossSigning - computeRoomShield ${roomSummaryEntity.roomId} -> ${activeMemberUserIds.logLimit()}")
         // The set of “all users” depends on the type of room:
         // For regular / topic rooms which have more than 2 members (including yourself) are considered when decorating a room

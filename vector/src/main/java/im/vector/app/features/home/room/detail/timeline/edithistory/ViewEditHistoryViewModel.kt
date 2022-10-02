@@ -62,7 +62,7 @@ class ViewEditHistoryViewModel @AssistedInject constructor(
 
         viewModelScope.launch {
             val data = try {
-                room.fetchEditHistory(eventId)
+                room.relationService().fetchEditHistory(eventId)
             } catch (failure: Throwable) {
                 setState {
                     copy(editList = Fail(failure))
@@ -83,7 +83,8 @@ class ViewEditHistoryViewModel @AssistedInject constructor(
                                 payload = result.clearEvent,
                                 senderKey = result.senderCurve25519Key,
                                 keysClaimed = result.claimedEd25519Key?.let { k -> mapOf("ed25519" to k) },
-                                forwardingCurve25519KeyChain = result.forwardingCurve25519KeyChain
+                                forwardingCurve25519KeyChain = result.forwardingCurve25519KeyChain,
+                                isSafe = result.isSafe
                         )
                     } catch (e: MXCryptoError) {
                         Timber.w("Failed to decrypt event in history")

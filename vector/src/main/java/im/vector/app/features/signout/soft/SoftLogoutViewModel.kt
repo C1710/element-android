@@ -33,16 +33,15 @@ import im.vector.app.core.di.hiltMavericksViewModelFactory
 import im.vector.app.core.extensions.hasUnsavedKeys
 import im.vector.app.core.platform.VectorViewModel
 import im.vector.app.features.login.LoginMode
+import im.vector.app.features.login.toSsoState
 import kotlinx.coroutines.launch
 import org.matrix.android.sdk.api.auth.AuthenticationService
+import org.matrix.android.sdk.api.auth.LoginType
 import org.matrix.android.sdk.api.auth.data.LoginFlowTypes
 import org.matrix.android.sdk.api.session.Session
 import org.matrix.android.sdk.api.session.getUser
 import timber.log.Timber
 
-/**
- * TODO Test push: disable the pushers?
- */
 class SoftLogoutViewModel @AssistedInject constructor(
         @Assisted initialState: SoftLogoutViewState,
         private val session: Session,
@@ -70,7 +69,8 @@ class SoftLogoutViewModel @AssistedInject constructor(
                         userId = userId,
                         deviceId = session.sessionParams.deviceId.orEmpty(),
                         userDisplayName = session.getUser(userId)?.displayName ?: userId,
-                        hasUnsavedKeys = session.hasUnsavedKeys()
+                        hasUnsavedKeys = session.hasUnsavedKeys(),
+                        loginType = session.sessionParams.loginType,
                 )
             } else {
                 SoftLogoutViewState(
@@ -78,7 +78,8 @@ class SoftLogoutViewModel @AssistedInject constructor(
                         userId = "",
                         deviceId = "",
                         userDisplayName = "",
-                        hasUnsavedKeys = false
+                        hasUnsavedKeys = false,
+                        loginType = LoginType.UNKNOWN,
                 )
             }
         }
@@ -115,10 +116,10 @@ class SoftLogoutViewModel @AssistedInject constructor(
             val loginMode = when {
                 // SSO login is taken first
                 data.supportedLoginTypes.contains(LoginFlowTypes.SSO) &&
-                        data.supportedLoginTypes.contains(LoginFlowTypes.PASSWORD) -> LoginMode.SsoAndPassword(data.ssoIdentityProviders)
-                data.supportedLoginTypes.contains(LoginFlowTypes.SSO)              -> LoginMode.Sso(data.ssoIdentityProviders)
-                data.supportedLoginTypes.contains(LoginFlowTypes.PASSWORD)         -> LoginMode.Password
-                else                                                               -> LoginMode.Unsupported
+                        data.supportedLoginTypes.contains(LoginFlowTypes.PASSWORD) -> LoginMode.SsoAndPassword(data.ssoIdentityProviders.toSsoState())
+                data.supportedLoginTypes.contains(LoginFlowTypes.SSO) -> LoginMode.Sso(data.ssoIdentityProviders.toSsoState())
+                data.supportedLoginTypes.contains(LoginFlowTypes.PASSWORD) -> LoginMode.Password
+                else -> LoginMode.Unsupported
             }
 
             setState {
@@ -131,11 +132,11 @@ class SoftLogoutViewModel @AssistedInject constructor(
 
     override fun handle(action: SoftLogoutAction) {
         when (action) {
-            is SoftLogoutAction.RetryLoginFlow  -> getSupportedLoginFlow()
+            is SoftLogoutAction.RetryLoginFlow -> getSupportedLoginFlow()
             is SoftLogoutAction.PasswordChanged -> handlePasswordChange(action)
-            is SoftLogoutAction.SignInAgain     -> handleSignInAgain(action)
+            is SoftLogoutAction.SignInAgain -> handleSignInAgain(action)
             is SoftLogoutAction.WebLoginSuccess -> handleWebLoginSuccess(action)
-            is SoftLogoutAction.ClearData       -> handleClearData()
+            is SoftLogoutAction.ClearData -> handleClearData()
         }
     }
 
@@ -159,9 +160,12 @@ class SoftLogoutViewModel @AssistedInject constructor(
         withState { softLogoutViewState ->
             if (softLogoutViewState.userId != action.credentials.userId) {
                 Timber.w("User login again with SSO, but using another account")
-                _viewEvents.post(SoftLogoutViewEvents.ErrorNotSameUser(
-                        softLogoutViewState.userId,
-                        action.credentials.userId))
+                _viewEvents.post(
+                        SoftLogoutViewEvents.ErrorNotSameUser(
+                                softLogoutViewState.userId,
+                                action.credentials.userId
+                        )
+                )
             } else {
                 setState {
                     copy(
@@ -208,7 +212,7 @@ class SoftLogoutViewModel @AssistedInject constructor(
     private fun onSessionRestored() {
         activeSessionHolder.setActiveSession(session)
         // Start the sync
-        session.startSync(true)
+        session.syncService().startSync(true)
 
         // TODO Configure and start ? Check that the push still works...
         setState {

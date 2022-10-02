@@ -33,14 +33,15 @@ import org.matrix.android.sdk.api.session.events.model.EventType
 import org.matrix.android.sdk.api.session.events.model.RelationType
 import org.matrix.android.sdk.api.session.events.model.toModel
 import org.matrix.android.sdk.api.session.getRoom
+import org.matrix.android.sdk.api.session.room.getTimelineEvent
 import org.matrix.android.sdk.api.session.room.model.message.MessageRelationContent
 import org.matrix.android.sdk.api.session.room.model.message.MessageVerificationCancelContent
 import javax.inject.Inject
 
 /**
- * Can creates verification conclusion items
+ * Can creates verification conclusion items.
  * Notice that not all KEY_VERIFICATION_DONE will be displayed in timeline,
- * several checks are made to see if this conclusion is attached to a known request
+ * several checks are made to see if this conclusion is attached to a known request.
  */
 class VerificationItemFactory @Inject constructor(
         private val messageColorProvider: MessageColorProvider,
@@ -108,10 +109,10 @@ class VerificationItemFactory @Inject constructor(
                                 .highlighted(params.isHighlighted)
                                 .leftGuideline(avatarSizeProvider.leftGuideline)
                     }
-                    else                     -> return ignoredConclusion(params)
+                    else -> return ignoredConclusion(params)
                 }
             }
-            EventType.KEY_VERIFICATION_DONE   -> {
+            EventType.KEY_VERIFICATION_DONE -> {
                 // Is the request referenced is actually really completed?
                 if (referenceInformationData.referencesInfoData?.verificationStatus != VerificationState.DONE) {
                     return ignoredConclusion(params)

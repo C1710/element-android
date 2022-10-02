@@ -43,6 +43,7 @@ import im.vector.app.core.utils.checkPermissions
 import im.vector.app.core.utils.onPermissionDeniedSnackbar
 import im.vector.app.core.utils.registerForPermissionsResult
 import im.vector.app.features.analytics.plan.MobileScreen
+import im.vector.app.features.analytics.plan.ViewRoom
 import im.vector.app.features.contactsbook.ContactsBookFragment
 import im.vector.app.features.qrcode.QrCodeScannerEvents
 import im.vector.app.features.qrcode.QrCodeScannerFragment
@@ -78,11 +79,11 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
                 .stream()
                 .onEach { action ->
                     when (action) {
-                        UserListSharedAction.Close                 -> finish()
-                        UserListSharedAction.GoBack                -> onBackPressed()
-                        is UserListSharedAction.OnMenuItemSelected -> onMenuItemSelected(action)
-                        UserListSharedAction.OpenPhoneBook         -> openPhoneBook()
-                        UserListSharedAction.AddByQrCode           -> openAddByQrCode()
+                        UserListSharedAction.Close -> finish()
+                        UserListSharedAction.GoBack -> onBackPressed()
+                        is UserListSharedAction.OnMenuItemSubmitClick -> handleOnMenuItemSubmitClick(action)
+                        UserListSharedAction.OpenPhoneBook -> openPhoneBook()
+                        UserListSharedAction.AddByQrCode -> openAddByQrCode()
                     }
                 }
                 .launchIn(lifecycleScope)
@@ -92,7 +93,8 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
                     UserListFragment::class.java,
                     UserListFragmentArgs(
                             title = getString(R.string.fab_menu_create_chat),
-                            menuResId = R.menu.vector_create_direct_room
+                            menuResId = R.menu.vector_create_direct_room,
+                            submitMenuItemId = R.id.action_create_direct_room,
                     )
             )
         }
@@ -106,7 +108,7 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
                     Toast.makeText(this, R.string.invalid_qr_code_uri, Toast.LENGTH_SHORT).show()
                     finish()
                 }
-                CreateDirectRoomViewEvents.DmSelf      -> {
+                CreateDirectRoomViewEvents.DmSelf -> {
                     Toast.makeText(this, R.string.cannot_dm_self, Toast.LENGTH_SHORT).show()
                     finish()
                 }
@@ -115,14 +117,14 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
 
         qrViewModel.observeViewEvents {
             when (it) {
-                is QrCodeScannerEvents.CodeParsed  -> {
+                is QrCodeScannerEvents.CodeParsed -> {
                     viewModel.handle(CreateDirectRoomAction.QrScannedAction(it.result))
                 }
                 is QrCodeScannerEvents.ParseFailed -> {
                     Toast.makeText(this, R.string.qr_code_not_scanned, Toast.LENGTH_SHORT).show()
                     finish()
                 }
-                else                               -> Unit
+                else -> Unit
             }
         }
     }
@@ -158,18 +160,16 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
         }
     }
 
-    private fun onMenuItemSelected(action: UserListSharedAction.OnMenuItemSelected) {
-        if (action.itemId == R.id.action_create_direct_room) {
-            viewModel.handle(CreateDirectRoomAction.CreateRoomAndInviteSelectedUsers(action.selections))
-        }
+    private fun handleOnMenuItemSubmitClick(action: UserListSharedAction.OnMenuItemSubmitClick) {
+        viewModel.handle(CreateDirectRoomAction.PrepareRoomWithSelectedUsers(action.selections))
     }
 
     private fun renderCreateAndInviteState(state: Async<String>) {
         when (state) {
             is Loading -> renderCreationLoading()
             is Success -> renderCreationSuccess(state())
-            is Fail    -> renderCreationFailure(state.error)
-            else       -> Unit
+            is Fail -> renderCreationFailure(state.error)
+            else -> Unit
         }
     }
 
@@ -180,7 +180,7 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
     private fun renderCreationFailure(error: Throwable) {
         hideWaitingView()
         when (error) {
-            is CreateRoomFailure.CreatedWithTimeout           -> {
+            is CreateRoomFailure.CreatedWithTimeout -> {
                 finish()
             }
             is CreateRoomFailure.CreatedWithFederationFailure -> {
@@ -190,7 +190,7 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
                         .setPositiveButton(R.string.ok) { _, _ -> finish() }
                         .show()
             }
-            else                                              -> {
+            else -> {
                 val message = if (error is Failure.ServerError && error.httpCode == HttpURLConnection.HTTP_INTERNAL_ERROR /*500*/) {
                     // This error happen if the invited userId does not exist.
                     getString(R.string.create_room_dm_failure)
@@ -206,7 +206,11 @@ class CreateDirectRoomActivity : SimpleFragmentActivity() {
     }
 
     private fun renderCreationSuccess(roomId: String) {
-        navigator.openRoom(this, roomId)
+        navigator.openRoom(
+                context = this,
+                roomId = roomId,
+                trigger = ViewRoom.Trigger.MessageUser
+        )
         finish()
     }
 

@@ -37,7 +37,7 @@ import im.vector.app.features.home.room.detail.timeline.helper.ContentUploadStat
 import im.vector.app.features.home.room.detail.timeline.style.TimelineMessageLayout
 import im.vector.app.features.themes.ThemeUtils
 
-@EpoxyModelClass(layout = R.layout.item_timeline_event_base)
+@EpoxyModelClass
 abstract class MessageAudioItem : AbsMessageItem<MessageAudioItem.Holder>() {
 
     @EpoxyAttribute
@@ -144,9 +144,9 @@ abstract class MessageAudioItem : AbsMessageItem<MessageAudioItem.Holder>() {
         audioMessagePlaybackTracker.track(attributes.informationData.eventId, object : AudioMessagePlaybackTracker.Listener {
             override fun onUpdate(state: AudioMessagePlaybackTracker.Listener.State) {
                 when (state) {
-                    is AudioMessagePlaybackTracker.Listener.State.Idle      -> renderIdleState(holder)
-                    is AudioMessagePlaybackTracker.Listener.State.Playing   -> renderPlayingState(holder, state)
-                    is AudioMessagePlaybackTracker.Listener.State.Paused    -> renderPausedState(holder, state)
+                    is AudioMessagePlaybackTracker.Listener.State.Idle -> renderIdleState(holder)
+                    is AudioMessagePlaybackTracker.Listener.State.Playing -> renderPlayingState(holder, state)
+                    is AudioMessagePlaybackTracker.Listener.State.Paused -> renderPausedState(holder, state)
                     is AudioMessagePlaybackTracker.Listener.State.Recording -> Unit
                 }
             }
@@ -210,6 +210,6 @@ abstract class MessageAudioItem : AbsMessageItem<MessageAudioItem.Holder>() {
     }
 
     companion object {
-        private const val STUB_ID = R.id.messageContentAudioStub
+        private val STUB_ID = R.id.messageContentAudioStub
     }
 }

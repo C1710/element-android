@@ -74,6 +74,8 @@ internal class RedactionEventProcessor @Inject constructor() : EventInsertLivePr
             when (typeToPrune) {
                 EventType.ENCRYPTED,
                 EventType.MESSAGE,
+                in EventType.STATE_ROOM_BEACON_INFO,
+                in EventType.BEACON_LOCATION_DATA,
                 in EventType.POLL_START -> {
                     Timber.d("REDACTION for message ${eventToPrune.eventId}")
                     val unsignedData = EventMapper.map(eventToPrune).unsignedData
@@ -145,10 +147,11 @@ internal class RedactionEventProcessor @Inject constructor() : EventInsertLivePr
     private fun computeAllowedKeys(type: String): List<String> {
         // Add filtered content, allowed keys in content depends on the event type
         return when (type) {
-            EventType.STATE_ROOM_MEMBER          -> listOf("membership")
-            EventType.STATE_ROOM_CREATE          -> listOf("creator")
-            EventType.STATE_ROOM_JOIN_RULES      -> listOf("join_rule")
-            EventType.STATE_ROOM_POWER_LEVELS    -> listOf("users",
+            EventType.STATE_ROOM_MEMBER -> listOf("membership")
+            EventType.STATE_ROOM_CREATE -> listOf("creator")
+            EventType.STATE_ROOM_JOIN_RULES -> listOf("join_rule")
+            EventType.STATE_ROOM_POWER_LEVELS -> listOf(
+                    "users",
                     "users_default",
                     "events",
                     "events_default",
@@ -156,11 +159,12 @@ internal class RedactionEventProcessor @Inject constructor() : EventInsertLivePr
                     "ban",
                     "kick",
                     "redact",
-                    "invite")
-            EventType.STATE_ROOM_ALIASES         -> listOf("aliases")
+                    "invite"
+            )
+            EventType.STATE_ROOM_ALIASES -> listOf("aliases")
             EventType.STATE_ROOM_CANONICAL_ALIAS -> listOf("alias")
-            EventType.FEEDBACK                   -> listOf("type", "target_event_id")
-            else                                 -> emptyList()
+            EventType.FEEDBACK -> listOf("type", "target_event_id")
+            else -> emptyList()
         }
     }
 }

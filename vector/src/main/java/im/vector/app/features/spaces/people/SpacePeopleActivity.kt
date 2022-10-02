@@ -30,6 +30,7 @@ import im.vector.app.core.extensions.replaceFragment
 import im.vector.app.core.platform.GenericIdArgs
 import im.vector.app.core.platform.VectorBaseActivity
 import im.vector.app.databinding.ActivitySimpleLoadingBinding
+import im.vector.app.features.analytics.plan.ViewRoom
 import im.vector.app.features.spaces.share.ShareSpaceBottomSheet
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
@@ -76,10 +77,10 @@ class SpacePeopleActivity : VectorBaseActivity<ActivitySimpleLoadingBinding>() {
                 .stream()
                 .onEach { sharedAction ->
                     when (sharedAction) {
-                        SpacePeopleSharedAction.Dismiss             -> finish()
-                        is SpacePeopleSharedAction.NavigateToRoom   -> navigateToRooms(sharedAction)
-                        SpacePeopleSharedAction.HideModalLoading    -> hideWaitingView()
-                        SpacePeopleSharedAction.ShowModalLoading    -> {
+                        SpacePeopleSharedAction.Dismiss -> finish()
+                        is SpacePeopleSharedAction.NavigateToRoom -> navigateToRooms(sharedAction)
+                        SpacePeopleSharedAction.HideModalLoading -> hideWaitingView()
+                        SpacePeopleSharedAction.ShowModalLoading -> {
                             showWaitingView(getString(R.string.please_wait))
                         }
                         is SpacePeopleSharedAction.NavigateToInvite -> {
@@ -90,7 +91,11 @@ class SpacePeopleActivity : VectorBaseActivity<ActivitySimpleLoadingBinding>() {
     }
 
     private fun navigateToRooms(action: SpacePeopleSharedAction.NavigateToRoom) {
-        navigator.openRoom(this, action.roomId)
+        navigator.openRoom(
+                context = this,
+                roomId = action.roomId,
+                trigger = ViewRoom.Trigger.MobileSpaceMembers
+        )
         finish()
     }
 

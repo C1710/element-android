@@ -44,11 +44,11 @@ class RoomMemberCountCondition(
         // Parse the is field into prefix and number the first time
         val (prefix, count) = parseIsField() ?: return false
 
-        val numMembers = room.getNumberOfJoinedMembers()
+        val numMembers = room.membershipService().getNumberOfJoinedMembers()
 
         return when (prefix) {
-            "<"  -> numMembers < count
-            ">"  -> numMembers > count
+            "<" -> numMembers < count
+            ">" -> numMembers > count
             "<=" -> numMembers <= count
             ">=" -> numMembers >= count
             else -> numMembers == count

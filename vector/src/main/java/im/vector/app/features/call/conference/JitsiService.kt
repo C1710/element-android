@@ -19,12 +19,13 @@ package im.vector.app.features.call.conference
 import im.vector.app.R
 import im.vector.app.core.network.await
 import im.vector.app.core.resources.StringProvider
+import im.vector.app.core.time.Clock
 import im.vector.app.core.utils.ensureProtocol
 import im.vector.app.core.utils.toBase32String
 import im.vector.app.features.call.conference.jwt.JitsiJWTFactory
 import im.vector.app.features.displayname.getBestName
 import im.vector.app.features.raw.wellknown.getElementWellknown
-import im.vector.app.features.settings.VectorLocale
+import im.vector.app.features.settings.VectorLocaleProvider
 import im.vector.app.features.themes.ThemeProvider
 import okhttp3.Request
 import org.jitsi.meet.sdk.JitsiMeetUserInfo
@@ -46,7 +47,10 @@ class JitsiService @Inject constructor(
         private val rawService: RawService,
         private val stringProvider: StringProvider,
         private val themeProvider: ThemeProvider,
-        private val jitsiJWTFactory: JitsiJWTFactory) {
+        private val jitsiJWTFactory: JitsiJWTFactory,
+        private val clock: Clock,
+        private val vectorLocale: VectorLocaleProvider,
+) {
 
     companion object {
         const val JITSI_OPEN_ID_TOKEN_JWT_AUTH = "openidtoken-jwt"
@@ -60,7 +64,7 @@ class JitsiService @Inject constructor(
 
     suspend fun createJitsiWidget(roomId: String, withVideo: Boolean): Widget {
         // Build data for a jitsi widget
-        val widgetId: String = WidgetType.Jitsi.preferred + "_" + session.myUserId + "_" + System.currentTimeMillis()
+        val widgetId: String = WidgetType.Jitsi.preferred + "_" + session.myUserId + "_" + clock.epochMillis()
         val preferredJitsiDomain = tryOrNull {
             rawService.getElementWellknown(session.sessionParams)
                     ?.jitsiServer
@@ -160,7 +164,7 @@ class JitsiService @Inject constructor(
             if (widgetSessionId.length > 8) {
                 widgetSessionId = widgetSessionId.substring(0, 7)
             }
-            roomId.substring(1, roomId.indexOf(":") - 1) + widgetSessionId.lowercase(VectorLocale.applicationLocale)
+            roomId.substring(1, roomId.indexOf(":") - 1) + widgetSessionId.lowercase(vectorLocale.applicationLocale)
         }
     }
 

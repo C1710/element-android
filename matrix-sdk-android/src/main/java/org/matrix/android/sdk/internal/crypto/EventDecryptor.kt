@@ -18,6 +18,8 @@ package org.matrix.android.sdk.internal.crypto
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import org.matrix.android.sdk.api.MatrixCallback
 import org.matrix.android.sdk.api.MatrixCoroutineDispatchers
@@ -29,6 +31,7 @@ import org.matrix.android.sdk.api.session.crypto.model.MXUsersDevicesMap
 import org.matrix.android.sdk.api.session.events.model.Event
 import org.matrix.android.sdk.api.session.events.model.EventType
 import org.matrix.android.sdk.api.session.events.model.content.OlmEventContent
+import org.matrix.android.sdk.api.session.events.model.toContent
 import org.matrix.android.sdk.api.session.events.model.toModel
 import org.matrix.android.sdk.internal.crypto.actions.EnsureOlmSessionsForDevicesAction
 import org.matrix.android.sdk.internal.crypto.actions.MessageEncrypter
@@ -36,17 +39,19 @@ import org.matrix.android.sdk.internal.crypto.store.IMXCryptoStore
 import org.matrix.android.sdk.internal.crypto.tasks.SendToDeviceTask
 import org.matrix.android.sdk.internal.extensions.foldToCallback
 import org.matrix.android.sdk.internal.session.SessionScope
+import org.matrix.android.sdk.internal.util.time.Clock
 import timber.log.Timber
 import javax.inject.Inject
 
 private const val SEND_TO_DEVICE_RETRY_COUNT = 3
 
-private val loggerTag = LoggerTag("CryptoSyncHandler", LoggerTag.CRYPTO)
+private val loggerTag = LoggerTag("EventDecryptor", LoggerTag.CRYPTO)
 
 @SessionScope
 internal class EventDecryptor @Inject constructor(
         private val cryptoCoroutineScope: CoroutineScope,
         private val coroutineDispatchers: MatrixCoroutineDispatchers,
+        private val clock: Clock,
         private val roomDecryptorProvider: RoomDecryptorProvider,
         private val messageEncrypter: MessageEncrypter,
         private val sendToDeviceTask: SendToDeviceTask,
@@ -65,12 +70,13 @@ internal class EventDecryptor @Inject constructor(
             val senderKey: String?
     )
 
+    private val wedgedMutex = Mutex()
     private val wedgedDevices = mutableListOf<WedgedDeviceInfo>()
 
     /**
-     * Decrypt an event
+     * Decrypt an event.
      *
-     * @param event    the raw event.
+     * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return the MXEventDecryptionResult data, or throw in case of error
      */
@@ -80,9 +86,9 @@ internal class EventDecryptor @Inject constructor(
     }
 
     /**
-     * Decrypt an event asynchronously
+     * Decrypt an event asynchronously.
      *
-     * @param event    the raw event.
+     * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @param callback the callback to return data or null
      */
@@ -96,9 +102,9 @@ internal class EventDecryptor @Inject constructor(
     }
 
     /**
-     * Decrypt an event
+     * Decrypt an event.
      *
-     * @param event    the raw event.
+     * @param event the raw event.
      * @param timeline the id of the timeline where the event is decrypted. It is used to prevent replay attack.
      * @return the MXEventDecryptionResult data, or null in case of error
      */
@@ -108,6 +114,16 @@ internal class EventDecryptor @Inject constructor(
         if (eventContent == null) {
             Timber.tag(loggerTag.value).e("decryptEvent : empty event content")
             throw MXCryptoError.Base(MXCryptoError.ErrorType.BAD_ENCRYPTED_MESSAGE, MXCryptoError.BAD_ENCRYPTED_MESSAGE_REASON)
+        } else if (event.isRedacted()) {
+            // we shouldn't attempt to decrypt a redacted event because the content is cleared and decryption will fail because of null algorithm
+            return MXEventDecryptionResult(
+                    clearEvent = mapOf(
+                            "room_id" to event.roomId.orEmpty(),
+                            "type" to EventType.MESSAGE,
+                            "content" to emptyMap<String, Any>(),
+                            "unsigned" to event.unsignedData.toContent()
+                    )
+            )
         } else {
             val algorithm = eventContent["algorithm"]?.toString()
             val alg = roomDecryptorProvider.getOrCreateRoomDecryptor(event.roomId, algorithm)
@@ -138,11 +154,13 @@ internal class EventDecryptor @Inject constructor(
         }
     }
 
-    private fun markOlmSessionForUnwedging(senderId: String, senderKey: String) {
-        val info = WedgedDeviceInfo(senderId, senderKey)
-        if (!wedgedDevices.contains(info)) {
-            Timber.tag(loggerTag.value).d("Marking device from $senderId key:$senderKey as wedged")
-            wedgedDevices.add(info)
+    private suspend fun markOlmSessionForUnwedging(senderId: String, senderKey: String) {
+        wedgedMutex.withLock {
+            val info = WedgedDeviceInfo(senderId, senderKey)
+            if (!wedgedDevices.contains(info)) {
+                Timber.tag(loggerTag.value).d("Marking device from $senderId key:$senderKey as wedged")
+                wedgedDevices.add(info)
+            }
         }
     }
 
@@ -153,16 +171,18 @@ internal class EventDecryptor @Inject constructor(
         // we should force start a new session for those
         Timber.tag(loggerTag.value).v("Unwedging:  ${wedgedDevices.size} are wedged")
         // get the one that should be retried according to rate limit
-        val now = System.currentTimeMillis()
-        val toUnwedge = wedgedDevices.filter {
-            val lastForcedDate = lastNewSessionForcedDates[it] ?: 0
-            if (now - lastForcedDate < DefaultCryptoService.CRYPTO_MIN_FORCE_SESSION_PERIOD_MILLIS) {
-                Timber.tag(loggerTag.value).d("Unwedging, New session for $it already forced with device at $lastForcedDate")
-                return@filter false
+        val now = clock.epochMillis()
+        val toUnwedge = wedgedMutex.withLock {
+            wedgedDevices.filter {
+                val lastForcedDate = lastNewSessionForcedDates[it] ?: 0
+                if (now - lastForcedDate < DefaultCryptoService.CRYPTO_MIN_FORCE_SESSION_PERIOD_MILLIS) {
+                    Timber.tag(loggerTag.value).d("Unwedging, New session for $it already forced with device at $lastForcedDate")
+                    return@filter false
+                }
+                // let's already mark that we tried now
+                lastNewSessionForcedDates[it] = now
+                true
             }
-            // let's already mark that we tried now
-            lastNewSessionForcedDates[it] = now
-            true
         }
 
         if (toUnwedge.isEmpty()) {
@@ -216,6 +236,15 @@ internal class EventDecryptor @Inject constructor(
                                     val sendToDeviceParams = SendToDeviceTask.Params(EventType.ENCRYPTED, sendToDeviceMap)
                                     withContext(coroutineDispatchers.io) {
                                         sendToDeviceTask.executeRetry(sendToDeviceParams, remainingRetry = SEND_TO_DEVICE_RETRY_COUNT)
+                                    }
+
+                                    deviceList.values.flatten().forEach { deviceInfo ->
+                                        wedgedMutex.withLock {
+                                            wedgedDevices.removeAll {
+                                                it.senderKey == deviceInfo.identityKey() &&
+                                                        it.userId == deviceInfo.userId
+                                            }
+                                        }
                                     }
                                 } catch (failure: Throwable) {
                                     deviceList.flatMap { it.value }.joinToString { it.shortDebugString() }.let {
