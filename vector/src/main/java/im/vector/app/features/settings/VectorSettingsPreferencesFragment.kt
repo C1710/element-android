@@ -22,8 +22,8 @@ import android.os.Bundle
 import androidx.lifecycle.lifecycleScope
 import androidx.preference.Preference
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import de.c1710.filemojicompat_ui.views.picker.preference.EmojiPickerPreference
 import dagger.hilt.android.AndroidEntryPoint
+import de.c1710.filemojicompat_ui.views.picker.preference.EmojiPickerPreference
 import im.vector.app.R
 import im.vector.app.core.dialogs.PhotoOrVideoDialog
 import im.vector.app.core.extensions.restart
