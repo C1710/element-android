@@ -26,8 +26,6 @@ import android.os.Handler
 import android.os.HandlerThread
 import android.os.StrictMode
 import android.view.Gravity
-import androidx.core.provider.FontRequest
-import androidx.core.provider.FontsContractCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
@@ -66,7 +64,6 @@ import im.vector.app.features.settings.VectorLocale
 import im.vector.app.features.settings.VectorPreferences
 import im.vector.app.features.themes.ThemeUtils
 import im.vector.app.features.version.VersionProvider
-import im.vector.application.R
 import org.jitsi.meet.sdk.log.JitsiMeetDefaultLogHandler
 import org.matrix.android.sdk.api.Matrix
 import org.matrix.android.sdk.api.auth.AuthenticationService
@@ -88,8 +85,6 @@ class VectorApplication :
     @Inject lateinit var legacySessionImporter: LegacySessionImporter
     @Inject lateinit var authenticationService: AuthenticationService
     @Inject lateinit var vectorConfiguration: VectorConfiguration
-    // @Inject lateinit var emojiCompatFontProvider: EmojiCompatFontProvider
-    // @Inject lateinit var emojiCompatWrapper: EmojiCompatWrapper
     @Inject lateinit var vectorUncaughtExceptionHandler: VectorUncaughtExceptionHandler
     @Inject lateinit var activeSessionHolder: ActiveSessionHolder
     @Inject lateinit var notificationDrawerManager: NotificationDrawerManager
